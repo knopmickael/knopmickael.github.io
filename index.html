@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mickael Knop - Developer</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Software developer portfolium" />
+    <link rel="icon" href="./assets/images/favicon.png" />
+    <link
+      href="https://fonts.cdnfonts.com/css/jetbrains-mono-2"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      * {
+        font-family: "JetBrains Mono", sans-serif;
+        font-family: "JetBrains Mono NL", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <header></header>
+    <main>
+      <section
+        id="hero"
+        class="h-screen bg-black text-white flex justify-center items-center flex-col space-y-8"
+      >
+        <img
+          src="./assets//images/hero-image.jpg"
+          alt="Mickael Knop"
+          class="rounded-full w-2/3 mb-6"
+        />
+        <p>Mickael Knop</p>
+        <h1 class="text-3xl font-extrabold text-orange-500">
+          Full-stack Developer
+        </h1>
+        <button class="bg-white text-black px-4 py-2">See more</button>
+      </section>
+      <section
+        id="about"
+        class="h-screen bg-orange-500 text-white flex justify-center items-center flex-col space-y-8"
+      >
+        <h1 class="text-3xl font-extrabold mb-8">About me</h1>
+        <div class="mx-10 text-black space-y-8 text-justify">
+          <p>
+            I'm a software developer with experience in building and sustaining
+            web and mobile applications, as well as managing its infrastructure.
+          </p>
+          <p>
+            In my repositories, you can find some of the projects I've worked
+            on.
+          </p>
+          <p>
+            I have strong background in front-end using technologies like React
+            and Angular, back-end using Node and PHP and mobile development
+            using Expo and Ionic.
+          </p>
+          <p>
+            I also have great knowledge in container management with Docker and
+            Kubernetes, CI/CD pipelines and cloud programming.
+          </p>
+        </div>
+      </section>
+      <section
+        id="experience"
+        class="h-screen bg-black text-white flex justify-center items-center flex-col space-y-8"
+      >
+        <h1 class="text-3xl font-extrabold mb-8">Profissional Experience</h1>
+        <div class="mx-10 space-y-12">
+          <div class="space-y-4">
+            <div class="flex space-x-4 justify-between items-center">
+              <span class="text-xl">2020</span>
+              <span class="flex-1 h-1 bg-orange-500"></span>
+              <h2 class="text-2xl font-extrabold">PlanMob</h2>
+            </div>
+            <div>
+              <p class="text-justify">
+                Sustained a products delivering Node/Express API. Realized
+                thirdy-party services integration with AWS and created a BFF API
+                with PHP based on the main one, using Clean Arch and Test-Driven
+                development.
+              </p>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex space-x-4 justify-between items-center">
+              <span class="text-xl">2019</span>
+              <span class="flex-1 h-1 bg-orange-500"></span>
+              <h2 class="text-2xl font-extrabold">TrioMidia</h2>
+            </div>
+            <div>
+              <p class="text-justify">
+                Developed institutional, e-commerce and CMS applications. Mobile
+                MVPs with Expo. Was also responsible for the infrastructure of
+                the Apps.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section
+        id="projects"
+        class="bg-orange-500 text-white flex justify-center items-center flex-col space-y-8 py-16"
+      >
+        <h1 class="text-3xl font-extrabold mb-8">Side Projects</h1>
+        <div class="mx-10 space-y-8">
+          <div class="bg-black rounded-lg">
+            <a href="https://screw.ind.br" target="_blank">
+              <img src="./assets/images/screw.jpg" alt="Screw" class="rounded-xl p-1"/>
+            </a>
+          </div>
+          <div class="bg-black rounded-lg">
+            <a href="https://2fmineradora.com.br" target="_blank">
+              <img src="./assets/images/2f.jpg" alt="2F" class="rounded-xl p-1"/>
+            </a>
+          </div>
+          <div class="bg-black rounded-lg">
+            <a href="http://caumaq.com.br" target="_blank">
+              <img src="./assets/images/caumaq.jpg" alt="CAUMAQ" class="rounded-xl p-1"/>
+            </a>
+          </div>
+          <div class="bg-black rounded-lg">
+            <a href="https://knopmickael.github.io/webstore" target="_blank">
+              <img src="./assets/images/webstore.jpg" alt="Webstore" class="rounded-xl p-1"/>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer
+      class="bg-black text-white flex justify-center items-center flex-col py-16"
+    >
+      <small>
+        <span>©</span>
+        <script>
+          document.write(new Date().getFullYear());
+        </script>
+        <span class="text-orange-500">Mickael Knop</span>
+        <span>. All Rights Reserved.</span>
+      </small>
+    </footer>
+  </body>
+</html>
