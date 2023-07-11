@@ -16,10 +16,21 @@
         font-family: "JetBrains Mono", sans-serif;
         font-family: "JetBrains Mono NL", sans-serif;
       }
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #5e2500;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #fff;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #ccc;
+      }
     </style>
   </head>
   <body>
-    <header></header>
     <main>
       <section
         id="hero"
@@ -41,7 +52,9 @@
         class="h-screen bg-orange-500 text-white flex justify-center items-center flex-col space-y-8"
       >
         <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">About me</h1>
-        <div class="mx-10 text-black space-y-8 text-justify lg:text-2xl lg:mx-72">
+        <div
+          class="mx-10 text-black space-y-8 text-justify lg:text-2xl lg:mx-72"
+        >
           <p>
             I'm a software developer with experience in building and sustaining
             web and mobile applications, as well as managing its infrastructure.
@@ -65,7 +78,9 @@
         id="experience"
         class="h-screen bg-black text-white flex justify-center items-center flex-col space-y-8 lg:space-y-12"
       >
-        <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">Profissional Experience</h1>
+        <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">
+          Profissional Experience
+        </h1>
         <div class="mx-10 space-y-12 lg:space-y-14 lg:mx-0 lg:w-1/2">
           <div class="space-y-4 lg:space-y-8">
             <div class="flex space-x-4 justify-between items-center">
@@ -103,7 +118,9 @@
         class="bg-orange-500 text-white flex justify-center items-center flex-col space-y-8 py-16"
       >
         <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">Side Projects</h1>
-        <div class="mx-10 lg:mx-72 space-y-8 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-12">
+        <div
+          class="mx-10 lg:mx-72 space-y-8 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-12"
+        >
           <div class="bg-black rounded-lg">
             <a href="https://screw.ind.br" target="_blank">
               <img
@@ -147,12 +164,11 @@
       class="bg-black text-white flex justify-center items-center flex-col py-16"
     >
       <small>
-        <span>©</span>
+        ©
         <script>
           document.write(new Date().getFullYear());
         </script>
-        <span class="text-orange-500">Mickael Knop</span>
-        <span>. All Rights Reserved.</span>
+        <span class="text-orange-500">Mickael Knop</span>. All Rights Reserved.
       </small>
     </footer>
   </body>
