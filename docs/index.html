@@ -10,6 +10,13 @@
       href="https://fonts.cdnfonts.com/css/jetbrains-mono-2"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       * {
@@ -35,6 +42,7 @@
   </head>
   <body>
     <main>
+      <!-- hero -->
       <section
         id="hero"
         class="h-screen bg-black text-white flex justify-center items-center flex-col"
@@ -46,101 +54,58 @@
         />
         <div class="text-center mt-2 xl:mt-6">
           <p class="text-xl lg:text-2xl">Mickael Knop</p>
-          <h1 class="text-2xl lg:text-5xl font-extrabold text-orange-500 mt-2 xl:mt-4 mb-8 xl:mb-12">
-            Software Developer
-          </h1>
+          <h1
+            id="hero-title"
+            class="mx-10 md:mx-0 text-2xl lg:text-5xl font-extrabold text-orange-500 mt-2 xl:mt-4 mb-8 xl:mb-12"
+          ></h1>
           <a
+            id="hero-see-more-btn"
             href="#about"
-            class="bg-white text-black px-4 py-2 hover:bg-gray-300"
-            >See more</a
-          >
+            class="bg-white text-black rounded-lg px-4 py-2 lg:transition-opacity lg:duration-300 lg:hover:opacity-50"
+          ></a>
         </div>
       </section>
+      <!-- about -->
       <section
         id="about"
         class="h-screen bg-orange-500 text-white flex justify-center items-center flex-col space-y-8 relative"
       >
-        <h1 class="text-3xl font-extrabold lg:mb-8 lg:text-5xl">About me</h1>
-        <div
-          class="mx-10 text-black space-y-8 text-justify text-sm lg:text-2xl lg:mx-72"
+        <h1
+          id="about-title"
+          class="text-3xl font-extrabold lg:mb-8 lg:text-5xl"
         >
-          <p>
-            I'm a software developer with experience in building and sustaining
-            web and mobile applications, as well as managing its infrastructure.
-          </p>
-          <p>
-            In my repositories, you can find some of the projects I've worked
-            on.
-          </p>
-          <p>
-            I have strong background in front-end using technologies like React
-            and Angular, in back-end using Node and PHP and in mobile
-            development using Expo and Ionic.
-          </p>
-          <p>
-            I also have great knowledge in container management with Docker and
-            K8S, CI/CD pipelines and cloud programming.
-          </p>
-        </div>
+          About me
+        </h1>
+        <div
+          id="about-bio"
+          class="mx-10 text-black space-y-4 text-justify text-sm lg:text-2xl lg:mx-0 lg:w-2/3"
+        ></div>
         <a
           href="./assets/mickael-knop.pdf"
           target="_blank"
           download
-          class="text-xs lg:text-lg absolute bottom-6 lg:top-4 lg:right-10 text-black hover:underline"
+          class="text-xs lg:text-lg absolute bottom-4 lg:right-10 text-black hover:underline"
         >
-          <span class="lg:hidden">Click here to download my CV</span>
-          <span class="hidden lg:block">Download my CV</span>
+          <span id="about-cv-btn"></span>
         </a>
       </section>
+      <!-- experience -->
       <section
         id="experience"
-        class="h-screen bg-black text-white flex justify-center items-center flex-col space-y-8 lg:space-y-12 text-center"
+        class="h-screen bg-black text-white flex justify-center items-center flex-col space-y-4 lg:space-y-12 text-center"
       >
-        <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">
-          Profissional Experience
-        </h1>
-        <div class="mx-10 space-y-12 lg:space-y-14 lg:mx-0 lg:w-1/2">
-          <div class="space-y-4 lg:space-y-8">
-            <div class="flex space-x-4 justify-between items-center">
-              <span class="text-xl lg:text-2xl">2021</span>
-              <span class="flex-1 h-1 bg-orange-500"></span>
-              <div class="text-right">
-                <h2 class="text-2xl lg:text-3xl font-extrabold">PlanMob</h2>
-                <span class="text-xs">Mid-level Back-end</span>
-              </div>
-            </div>
-            <div>
-              <p class="text-justify text-sm lg:text-2xl">
-                Maintained a products delivering Node/Express API. Realized
-                thirdy-party services integration and created an abstraction API
-                (BFF) with PHP/Slim.
-              </p>
-            </div>
-          </div>
-          <div class="space-y-4 lg:space-y-8">
-            <div class="flex space-x-4 justify-between items-center">
-              <span class="text-xl lg:text-2xl">2020</span>
-              <span class="flex-1 h-1 bg-orange-500"></span>
-              <div class="text-right">
-                <h2 class="text-2xl lg:text-3xl font-extrabold">TrioMidia</h2>
-                <span class="text-xs">Jr. Full-stack</span>
-              </div>
-            </div>
-            <div>
-              <p class="text-justify text-sm lg:text-2xl">
-                Developed web institutional, e-commerce and CMS applications.
-                Also created a mobile MVP for the health area with Expo. Handled
-                the app's infra too.
-              </p>
-            </div>
-          </div>
-        </div>
+        <h1
+          id="experience-title"
+          class="text-3xl font-extrabold mb-8 lg:text-5xl"
+        ></h1>
+        <div id="experience-jobs" class="mx-10 space-y-8 lg:space-y-14 lg:mx-0 lg:w-2/3"></div>
       </section>
+      <!-- projects -->
       <section
         id="projects"
         class="bg-orange-500 text-white flex justify-center items-center flex-col space-y-8 py-16"
       >
-        <h1 class="text-3xl font-extrabold mb-8 lg:text-5xl">Side Projects</h1>
+        <h1 id="projects-title" class="text-3xl font-extrabold mb-8 lg:text-5xl"></h1>
         <div
           class="mx-10 lg:mx-72 space-y-8 xl:space-y-0 xl:grid xl:grid-cols-2 xl:gap-12"
         >
@@ -171,18 +136,38 @@
               />
             </a>
           </div>
-          <div class="bg-black rounded-lg">
-            <a href="https://knopmickael.github.io/webstore" target="_blank">
-              <img
-                src="./assets/webstore.jpg"
-                alt="Webstore"
-                class="rounded-xl p-1 xl:transition-opacity xl:duration-300 xl:ease-in-out xl:hover:opacity-50"
-              />
-            </a>
-          </div>
         </div>
       </section>
     </main>
+    <!-- language -->
+    <div class="fixed z-10 top-4 right-4">
+      <select id="langToggler">
+        <option value="pt-BR">pt-BR</option>
+        <option value="en-US" selected>en-US</option>
+      </select>
+    </div>
+    <!-- contact -->
+    <div
+      class="fixed z-10 top-0 left-2 lg:left-4 h-screen flex items-center text-white"
+    >
+      <div class="flex flex-col lg:space-y-4">
+        <a href="https://linkedin.com/in/knopmickael" target="_blank"
+          ><i
+            class="fa-brands fa-linkedin text-3xl opacity-30 lg:text-5xl lg:hover:opacity-70 lg:transition-all lg:duration-300 lg:transform lg:hover:translate-x-2"
+          ></i
+        ></a>
+        <a href="https://github.com/knopmickael" target="_blank"
+          ><i
+            class="fa-brands fa-square-github text-3xl opacity-30 lg:text-5xl lg:hover:opacity-70 lg:transition-all lg:duration-300 lg:transform lg:hover:translate-x-2"
+          ></i
+        ></a>
+        <a href="https://x.com/thevoidblossom" target="_blank"
+          ><i
+            class="fa-brands fa-square-x-twitter text-3xl opacity-30 lg:text-5xl lg:hover:opacity-70 lg:transition-all lg:duration-300 lg:transform lg:hover:translate-x-2"
+          ></i
+        ></a>
+      </div>
+    </div>
     <footer
       class="bg-black text-white flex justify-center items-center flex-col py-16 text-center"
     >
@@ -194,8 +179,9 @@
         <span class="text-orange-500">Mickael Knop</span>.<br
           class="md:hidden"
         />
-        All Rights Reserved.
+        <span id="footer-text"></span>
       </small>
     </footer>
+    <script defer src="assets/script.js"></script>
   </body>
 </html>
