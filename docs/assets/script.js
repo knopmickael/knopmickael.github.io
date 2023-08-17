@@ -69,8 +69,9 @@ window.addEventListener("DOMContentLoaded", function () {
             I also have experience in agile culture and DevOps, including container management, horizontal scalability, monitoring, creating integration and deployment pipelines, and other principles of distributed applications.
           </p>
         `;
+        document.querySelector("#about-cv-link").setAttribute('href', './assets/mickael-knop-enus.pdf')
         document.querySelector("#about-cv-btn").innerText =
-          "Click here to download my CV";
+          "Download my CV here";
 
         document.querySelector("#experience-title").innerText =
           "Profissional Experience";
@@ -99,8 +100,9 @@ window.addEventListener("DOMContentLoaded", function () {
             Também possuo experiência em cultura ágil e DevOps, incluindo gerenciamento de containers, escalabilidade horizontal, monitoramento, criação de pipelines de integração e de deployment, entre outros princípios de aplicações distribuídas.
           </p>
         `;
+        document.querySelector("#about-cv-link").setAttribute('href', './assets/mickael-knop-ptbr.pdf')
         document.querySelector("#about-cv-btn").innerText =
-          "Clique aqui para baixar meu CV";
+          "Baixe meu currículo";
 
         document.querySelector("#experience-title").innerText =
           "Experiência Profissional";
