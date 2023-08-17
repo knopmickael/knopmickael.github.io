@@ -69,10 +69,12 @@ window.addEventListener("DOMContentLoaded", function () {
             I also have experience in agile culture and DevOps, including container management, horizontal scalability, monitoring, creating integration and deployment pipelines, and other principles of distributed applications.
           </p>
         `;
-        document.querySelector("#about-cv-link").href =
-          "./assets/mickael-knop-enus.pdf";
-        document.querySelector("#about-cv-btn").innerText =
-          "Download my CV here";
+        document.querySelector("#about-cv-link").innerHTML = `
+          <a href="./assets/mickael-knop-enus.pdf"
+            target="_blank"
+            download
+            class="text-xs lg:text-lg absolute bottom-4 lg:right-10 text-black hover:underline">Download my CV here</a>
+        `;
 
         document.querySelector("#experience-title").innerText =
           "Profissional Experience";
@@ -102,10 +104,12 @@ window.addEventListener("DOMContentLoaded", function () {
             Também possuo experiência em cultura ágil e DevOps, incluindo gerenciamento de containers, escalabilidade horizontal, monitoramento, criação de pipelines de integração e de deployment, entre outros princípios de aplicações distribuídas.
           </p>
         `;
-        document.querySelector("#about-cv-link").href =
-          "./assets/mickael-knop-ptbr.pdf";
-        document.querySelector("#about-cv-btn").innerText =
-          "Baixe meu currículo";
+        document.querySelector("#about-cv-link").innerHTML = `
+          <a href="./assets/mickael-knop-ptbr.pdf"
+            target="_blank"
+            download
+            class="text-xs lg:text-lg absolute bottom-4 lg:right-10 text-black hover:underline">Baixe meu currículo</a>
+        `;
 
         document.querySelector("#experience-title").innerText =
           "Experiência Profissional";
@@ -123,5 +127,5 @@ window.addEventListener("DOMContentLoaded", function () {
   };
 
   document.querySelector("#langToggler").addEventListener("change", setLang);
-  setLang("en-US");
+  setLang("pt-BR");
 });
