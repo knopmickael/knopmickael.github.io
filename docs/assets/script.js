@@ -63,7 +63,7 @@ window.addEventListener("DOMContentLoaded", function () {
             I am a software developer with experience in building and maintaining mobile and web applications, as well as managing its infrastructure.
           </p>
           <p>
-            I have strong experience in front-end using technologies such as React and Angular in desktop applications, and Expo and Ionic for mobile applications. I also have a deep understanding of back-end engineering using Node.js, PHP and Laravel, as well as domain knowledge of relational and non-relational databases such as MySQL and MongoDB, respectively.
+            I have strong experience in front-end using technologies such as React and Angular in web applications, and Expo and Ionic for mobile applications. I also have a deep understanding of back-end engineering using Node.js, PHP and Laravel, as well as domain knowledge of relational and non-relational databases such as MySQL and MongoDB, respectively.
           </p>
           <p>
             I also have experience in agile culture and DevOps, including container management, horizontal scalability, monitoring, creating integration and deployment pipelines, and other principles of distributed applications.
@@ -98,7 +98,7 @@ window.addEventListener("DOMContentLoaded", function () {
             Sou um desenvolvedor de software com vivência na construção e manutenção de aplicativos móveis e web, bem como na gestão da infraestrutura das aplicações.
           </p>
           <p>
-            Tenho forte experiência em front-end usando tecnologias como React e Angular em aplicações desktop, e Expo e Ionic para aplicações mobile. Também tenho profundo conhecimento em engenharia de back-end usando Node.js, PHP e Laravel, além de domínio de bancos relacionais e não-relacionais como MySQL e MongoDB, respectivamente.
+            Tenho forte experiência em front-end usando tecnologias como React e Angular em aplicações web, e Expo e Ionic para aplicações mobile. Também tenho profundo conhecimento em engenharia de back-end usando Node.js, PHP e Laravel, além de domínio de bancos relacionais e não-relacionais como MySQL e MongoDB, respectivamente.
           </p>
           <p>
             Também possuo experiência em cultura ágil e DevOps, incluindo gerenciamento de containers, escalabilidade horizontal, monitoramento, criação de pipelines de integração e de deployment, entre outros princípios de aplicações distribuídas.
