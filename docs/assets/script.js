@@ -70,7 +70,7 @@ window.addEventListener("DOMContentLoaded", function () {
           </p>
         `;
         document.querySelector("#about-cv-link").innerHTML = `
-          <a href="./assets/mickael-knop-enus.pdf"
+          <a href="./assets/mickael-knop.enus.pdf"
             target="_blank"
             download
             class="text-xs lg:text-lg absolute bottom-4 lg:right-10 text-black hover:underline">Download my CV here</a>
@@ -105,7 +105,7 @@ window.addEventListener("DOMContentLoaded", function () {
           </p>
         `;
         document.querySelector("#about-cv-link").innerHTML = `
-          <a href="./assets/mickael-knop-ptbr.pdf"
+          <a href="./assets/mickael-knop.ptbr.pdf"
             target="_blank"
             download
             class="text-xs lg:text-lg absolute bottom-4 lg:right-10 text-black hover:underline">Baixe meu currículo</a>
