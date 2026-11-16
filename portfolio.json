@@ -210,7 +210,6 @@
       "tags": [
         "TypeScript",
         "React",
-        "SPA",
         "Node.js",
         "Fastify",
         "REST API",
@@ -231,16 +230,16 @@
         "cover": 0,
         "images": [
           {
+            "src": "assets/projects/fc53b499-8e27-44d8-963b-d6fe6533da69.png",
+            "label": "Menú inicial"
+          },
+          {
             "src": "assets/projects/a6168172-bf14-4b6e-b248-3d28075c10a4.png",
             "label": "Batalha"
           },
           {
             "src": "assets/projects/d905bcb0-9ac0-4c3b-8e32-f96e4fb8b6ba.png",
             "label": "Mapa campanha"
-          },
-          {
-            "src": "assets/projects/2704ca91-f8e5-4a4a-8500-38c3a34a8019.png",
-            "label": "Lista de personagem"
           },
           {
             "src": "assets/projects/5f82fe59-160d-4a93-b9f8-6f864f12feed.png",
@@ -257,8 +256,47 @@
       "repositoryVisibility": "public"
     },
     {
-      "id": "screw-tecnologia-em-transporte-helicoidal",
+      "id": "linkedin-post-publisher",
       "number": "02",
+      "title": "LinkedIn Post Publisher",
+      "type": "AUTOMAÇÃO",
+      "description": "Aplicação web local que transforma notícias de tecnologia em rascunhos para o LinkedIn, com geração sob demanda, revisão de texto e imagens e publicação manual.",
+      "tags": [
+        "TypeScript",
+        "React",
+        "Node.js",
+        "Fastify",
+        "OpenAPI SDK",
+        "LinkedIn REST Api",
+        "OAuth 2.0",
+        "OpenID Connect",
+        "CI/CD",
+        "Playwright",
+        "SDD",
+        "AI"
+      ],
+      "url": "https://github.com/knopmickael/linkedin-post-publisher",
+      "demoUrl": "",
+      "repositoryVisibility": "public",
+      "visual": {
+        "type": "gallery",
+        "cover": 0,
+        "images": [
+          {
+            "src": "assets/projects/462b6475-bfef-4e81-a747-aa8a7d09002e.png",
+            "label": "Tela principal"
+          },
+          {
+            "src": "assets/projects/04192e58-d1bd-4bc7-99cd-3cabb88a4f79.png",
+            "label": "Integrações"
+          }
+        ]
+      },
+      "details": []
+    },
+    {
+      "id": "screw-tecnologia-em-transporte-helicoidal",
+      "number": "03",
       "title": "Screw - Tecnologia em Transporte Helicoidal",
       "type": "APLICAÇÃO WEB",
       "description": "Website institucional da empresa Screw com gerenciador de conteúdo, catálogo de produtos, listagem de clientes, board de notícias e formulários de contato com a empresa em Laravel, Vue.js e MySQL.",
@@ -303,7 +341,7 @@
     },
     {
       "id": "caumaq-health-technology",
-      "number": "03",
+      "number": "04",
       "title": "CAUMAQ - Health Technology",
       "type": "APLICAÇÃO WEB",
       "description": "Website institucional da empresa CAUMAQ com gerenciador de conteúdo, catálogo de produtos, área do cliente, board de notícias, depoimentos e formulários de contato com a empresa em Laravel com MySQL.",
@@ -343,14 +381,13 @@
     },
     {
       "id": "brecho-curadoria",
-      "number": "04",
+      "number": "05",
       "title": "Brechó Curadoria",
       "type": "APLICAÇÃO WEB",
       "description": "Loja virtual da empresa Brechó Curadoria by Júlia Effell com gerenciador de conteúdo, catálogo de produtos, área do cliente, carrinho de compras, checkout e formulários de contato com a empresa.",
       "tags": [
         "TypeScript",
         "React",
-        "SPA",
         "Node.js",
         "Fastify",
         "REST API",
@@ -388,7 +425,7 @@
     },
     {
       "id": "comercio-de-extracao-de-areia-ltda",
-      "number": "05",
+      "number": "06",
       "title": "2F - Comércio de Extração de Areia LTDA",
       "type": "APLICAÇÃO WEB",
       "description": "Website da empresa 2F Mineradora com gerenciador de conteúdo, informações institucionais, board de notícias e formulários de contato com a empresa em Laravel, Vue.js e MySQL.",
@@ -431,7 +468,7 @@
     },
     {
       "id": "contabilidade-caseira",
-      "number": "06",
+      "number": "07",
       "title": "Contabilidade Caseira",
       "type": "FINANÇAS PESSOAIS",
       "description": "Controle de receitas e despesas em um quadro mensal, com categorias, parcelamentos e persistência local em SQLite.",
@@ -468,7 +505,7 @@
     },
     {
       "id": "ionic-pride",
-      "number": "07",
+      "number": "08",
       "title": "Ionic Pride · Gestão de pessoas",
       "type": "MVP COM IONIC",
       "description": "Um MVP em Ionic para gerenciar informações de colaboradores e fotos de perfil, com execução também no navegador.",
