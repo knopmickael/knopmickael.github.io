@@ -45,6 +45,51 @@ test('local CMS persists real files, protects writes, handles conflicts and publ
     assert.equal((await fetch(`${origin}/scripts/cms.mjs`)).status, 404);
   });
 
+  await t.test('serves only the CMS, its modules and previews, keeping portfolio entrypoints off the CMS port', async () => {
+    const response = await fetch(`${origin}/?view=blog`, { redirect: 'manual' });
+    assert.equal(response.status, 303);
+    assert.equal(response.headers.get('location'), '/cms/?view=blog');
+    assert.equal((await fetch(`${origin}/cms/`)).status, 200);
+    for (const path of ['/index.html', '/blog.html', '/app.js', '/styles.css', '/portfolio.json']) assert.equal((await fetch(`${origin}${path}`)).status, 404);
+    for (const path of ['/cms/cms.js', '/cms/cms.css', '/lib/content.js', '/lib/blog.js', '/assets/favicon.svg']) assert.equal((await fetch(`${origin}${path}`)).status, 200);
+  });
+
+  await t.test('allows the OAuth return as a document navigation while rejecting cross-site API and embedded requests', async () => {
+    // Node fetch rewrites Sec-Fetch-Mode to cors; use raw HTTP to exercise
+    // the exact metadata sent by a browser following an OAuth redirect.
+    const send = (path, headers, method = 'GET') => new Promise((resolve, reject) => {
+      const request = httpRequest(`${origin}${path}`, { method, headers }, async response => {
+        const chunks = [];
+        try {
+          for await (const chunk of response) chunks.push(chunk);
+          resolve({ status: response.statusCode, headers: response.headers, body: Buffer.concat(chunks).toString('utf8') });
+        } catch (error) { reject(error); }
+      });
+      request.on('error', reject); request.end();
+    });
+    const navigation = { 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document' };
+    for (const path of ['/cms/?view=blog&oauth=connected', '/cms']) {
+      const response = await send(path, navigation);
+      assert.equal(response.status, 200);
+      assert.match(response.headers['content-type'], /text\/html/);
+      assert.match(response.body, /Estúdio de conteúdo/);
+    }
+    for (const path of ['/api/content', '/api/blog/ai/status']) {
+      assert.equal((await send(path, navigation)).status, 403);
+    }
+    for (const headers of [
+      { ...navigation, Origin: 'https://auth.openai.com' },
+      { ...navigation, 'Sec-Fetch-Dest': 'iframe' },
+      { ...navigation, 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty' },
+      { 'Sec-Fetch-Site': 'cross-site' }
+    ]) assert.equal((await send('/cms/?view=blog', headers)).status, 403);
+    assert.equal((await send('/cms/', navigation, 'HEAD')).status, 403);
+    for (const path of ['/api/content', '/api/blog/ai/connect', '/api/blog/ai/disconnect']) {
+      const method = path === '/api/content' ? 'PUT' : 'POST';
+      assert.equal((await send(path, { ...navigation, Origin: origin, 'X-CMS-Token': session.token }, method)).status, 403);
+    }
+  });
+
   await t.test('creates, edits, reorders and removes projects without categories, retaining a backup', async () => {
     const content = structuredClone(source);
     content.projects.push({ id: 'private-case', number: String(content.projects.length + 1).padStart(2, '0'), title: 'Case privado', type: 'CASE', description: 'Sem URL pública.', tags: [], details: [], repositoryVisibility: 'private', visual: { type: 'repository' } });

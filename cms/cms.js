@@ -1,4 +1,5 @@
 import { validatePortfolio, contentShape } from '/lib/content.js';
+import { renderArticle } from '/lib/blog.js';
 
 const $ = selector => document.querySelector(selector);
 const view = $('#view');
@@ -6,6 +7,9 @@ const dialog = $('#editor');
 let data, revision, token, dirty = false, busy = false, currentView = 'projects', formDirty = false;
 let query = '', section = 'profile';
 let returnFocus, submitting = false;
+let aiStatus, aiModels = [], aiBusy = false, aiPoll, blogQuery = '', blogFilter = 'all';
+const blogPreferences = { topic: '', model: '' };
+if (new URLSearchParams(location.search).get('view') === 'blog') currentView = 'blog';
 const previewUrls = new Set();
 
 function el(tag, attributes = {}, ...children) {
@@ -40,7 +44,7 @@ function feedback(message, error = false) {
 }
 function updateState() {
   view.inert = busy;
-  document.querySelector('aside').inert = busy;
+  document.querySelector('aside').inert = busy || aiBusy;
   $('#save-state').textContent = busy ? 'Salvando…' : dirty ? 'Alterações no rascunho · salve para atualizar o site' : 'JSON sincronizado · tudo salvo no disco';
   $('#save-state').classList.toggle('dirty', dirty);
   $('#save').disabled = !data || !dirty || busy;
@@ -48,6 +52,7 @@ function updateState() {
   $('#export').disabled = !data || busy;
   if (data) {
     $('#project-count').textContent = data.projects.length;
+    $('#post-count').textContent = data.posts.length;
   }
 }
 function changed() { dirty = true; updateState(); }
@@ -124,6 +129,7 @@ function render() {
   });
   updateState();
   if (currentView === 'projects') renderProjects();
+  else if (currentView === 'blog') renderBlog();
   else renderContent();
 }
 function heading(title, description, action) {
@@ -290,17 +296,144 @@ function editTree(parent, key, shape, path = key) {
   else {
     const attributes = { oninput: event => { parent[key] = type === 'number' ? Number(event.target.value) : event.target.value; changed(); } };
     control = type === 'number' ? input(path, value, { ...attributes, type: 'number' }) : textarea(path, String(value ?? ''), { ...attributes, rows: String(value).length > 100 ? 3 : 1 });
-    if (/^(about|projectsSection|expertise|experience|contact)\.id$/.test(path) || /^system\.layers\.\d+\.id$/.test(path)) control.readOnly = true;
+    if (/^(about|projectsSection|expertise|experience|blog|contact)\.id$/.test(path) || /^system\.layers\.\d+\.id$/.test(path)) control.readOnly = true;
   }
   return field(typeof key === 'number' ? `Item ${key + 1}` : label, control);
 }
 function renderContent() {
-  const choices = select('section', section, Object.keys(contentShape).map(key => [key, labels[key] || key]));
+  const choices = select('section', section, Object.keys(contentShape).map(key => [key, key === 'blog' ? 'Seção do blog' : labels[key] || key]));
   const form = el('div', { class: 'content-form' });
   const draw = () => form.replaceChildren(editTree(data, section, contentShape[section]));
   choices.addEventListener('change', () => { section = choices.value; draw(); });
   draw();
   view.replaceChildren(heading('Conteúdo do site', 'Formulários montados a partir do JSON atual. Cada campo mantém seu tipo; as alterações ficam no rascunho até salvar.'), el('div', { class: 'section-select' }, field('Qual seção deseja editar?', choices)), form);
+}
+
+function slugify(value) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').replace(/^[^a-z]+/, '').slice(0, 100).replace(/-$/, '');
+}
+function editPost(original, suggestion) {
+  const post = structuredClone(original || suggestion || { slug: '', title: '', excerpt: '', body: '', tags: [], date: new Date().toISOString().slice(0, 10), status: 'draft' });
+  if (!original && suggestion) {
+    const base = post.slug; let suffix = 2;
+    while (data.posts.some(item => item.slug === post.slug)) post.slug = `${base.slice(0, 90)}-${suffix++}`;
+  }
+  const form = el('form');
+  const slug = input('slug', post.slug, { required: true, maxlength: 100, pattern: '[a-z][a-z0-9-]*' });
+  const title = input('title', post.title, { required: true, maxlength: 180, oninput: event => { if (!original && !slug.dataset.manual) slug.value = slugify(event.target.value); } });
+  slug.addEventListener('input', () => { slug.dataset.manual = 'true'; });
+  const body = textarea('body', post.body, { required: true, maxlength: 40000, rows: 18 });
+  const preview = el('div', { class: 'article-body' });
+  const previewDetails = el('details', { class: 'post-preview' }, el('summary', {}, 'Prévia de leitura'), preview);
+  const drawPreview = () => preview.replaceChildren(renderArticle(body.value));
+  body.addEventListener('input', () => { if (previewDetails.open) drawPreview(); });
+  previewDetails.addEventListener('toggle', () => { if (previewDetails.open) drawPreview(); });
+  form.append(el('div', { class: 'editor-body' },
+    el('p', { class: 'hint' }, suggestion ? 'Sugestão da IA: revise o conteúdo, os exemplos e as afirmações. O artigo começa como rascunho.' : 'Aplique o artigo e depois use “Salvar no JSON”. Só artigos marcados como publicados aparecem no site.'),
+    field('Título do artigo', title),
+    el('div', { class: 'form-grid' }, field('Identificador / link', slug), field('Data', input('date', post.date, { type: 'date', required: true }))),
+    field('Resumo', textarea('excerpt', post.excerpt, { required: true, maxlength: 500, rows: 3 })),
+    field('Tags', input('tags', post.tags.join(', ')), 'Até 8 tags, separadas por vírgulas.'),
+    field('Conteúdo do artigo', body, 'Parágrafos, títulos com ##, listas com - e blocos de código entre três crases. HTML, links e formatação inline são exibidos como texto.'),
+    previewDetails,
+    field('Estado de publicação', select('status', post.status, [['draft', 'Rascunho'], ['published', 'Publicado']]))));
+  openEditor(original ? 'Editar artigo' : suggestion ? 'Revisar sugestão da IA' : 'Novo artigo', form, 'Aplicar artigo', values => {
+    const updated = Object.fromEntries(['slug', 'title', 'excerpt', 'body', 'date', 'status'].map(key => [key, String(values.get(key) || '').trim()]));
+    updated.tags = String(values.get('tags') || '').split(',').map(tag => tag.trim()).filter(Boolean);
+    const candidate = structuredClone(data);
+    const index = original ? data.posts.indexOf(original) : data.posts.length;
+    candidate.posts[index] = updated; validatePortfolio(candidate);
+    data.posts[index] = updated;
+  });
+  // A generated suggestion is unsaved work even before the first keystroke.
+  if (suggestion) formDirty = true;
+}
+async function refreshAiStatus() {
+  aiStatus = await api('/api/blog/ai/status');
+  if (!blogPreferences.model) blogPreferences.model = aiStatus.model;
+}
+async function aiAction(operation) {
+  if (aiBusy) return;
+  aiBusy = true; renderBlog();
+  try { await operation(); }
+  catch (error) { feedback(error.message, true); }
+  finally { aiBusy = false; if (currentView === 'blog') renderBlog(); }
+}
+function renderBlog() {
+  updateState();
+  const connection = el('p', { class: 'hint', role: 'status' }, aiStatus ? aiStatus.connected ? `Conectado · ${aiStatus.label}` : 'ChatGPT não conectado' : 'Verificando conexão…');
+  const connect = button(aiStatus?.connected ? 'Reconectar ChatGPT' : 'Continue with ChatGPT ↗', () => {
+    // Open synchronously so the browser keeps the OAuth tab associated with the click.
+    const tab = window.open('about:blank', '_blank');
+    if (tab) tab.opener = null;
+    aiAction(async () => {
+      try {
+        const result = await api('/api/blog/ai/connect', { method: 'POST' });
+        if (tab) tab.location.replace(result.url);
+        else feedback('O navegador bloqueou a aba. Permita pop-ups para este CMS e tente novamente.', true);
+        clearInterval(aiPoll);
+        const started = Date.now();
+        aiPoll = setInterval(async () => {
+          if (Date.now() - started > 600000) { clearInterval(aiPoll); return; }
+          try {
+            await refreshAiStatus();
+            if (!aiStatus.pending) {
+              clearInterval(aiPoll);
+              if (currentView === 'blog') renderBlog();
+              feedback(aiStatus.connected ? 'ChatGPT conectado. Atualize os modelos para gerar uma sugestão.' : 'Autorização encerrada. Conecte novamente para tentar outra vez.', !aiStatus.connected);
+            }
+          } catch { clearInterval(aiPoll); }
+        }, 2500);
+      } catch (error) { tab?.close(); throw error; }
+    });
+  }, 'secondary', { disabled: aiBusy });
+  const modelChoices = aiModels.map(model => [model.id, model.name]);
+  if (blogPreferences.model && !aiModels.some(model => model.id === blogPreferences.model)) modelChoices.unshift([blogPreferences.model, blogPreferences.model]);
+  const modelSelect = select('ai-model', blogPreferences.model, [['', 'Selecione um modelo'], ...modelChoices]);
+  modelSelect.disabled = aiBusy || !aiStatus?.connected;
+  modelSelect.addEventListener('change', () => { blogPreferences.model = modelSelect.value; });
+  const topic = textarea('ai-topic', blogPreferences.topic, { rows: 3, maxlength: 4000, placeholder: 'Ex.: quando usar filas em uma integração? Deixe vazio para a IA sugerir a pauta.', disabled: aiBusy, oninput: event => { blogPreferences.topic = event.target.value; } });
+  const generate = button(aiBusy ? 'Aguarde…' : 'Sugerir artigo com IA', () => aiAction(async () => {
+    if (!blogPreferences.model) throw new Error('Atualize os modelos e selecione um para continuar.');
+    feedback('Gerando sugestão… Isso pode levar até três minutos.');
+    const result = await api('/api/blog/ai/suggest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(blogPreferences) });
+    feedback('Sugestão pronta para revisão. Aplique o artigo para adicioná-lo ao rascunho.');
+    editPost(undefined, result.post);
+  }), 'primary', { disabled: aiBusy || !aiStatus?.connected });
+  const assistant = el('section', { class: 'ai-panel', 'aria-labelledby': 'ai-heading', 'aria-busy': String(aiBusy) },
+    el('div', { class: 'ai-heading' }, el('div', {}, el('p', { class: 'eyebrow' }, 'ASSISTENTE EDITORIAL'), el('h2', { id: 'ai-heading' }, 'Uma ideia para o próximo texto'), connection),
+      el('div', { class: 'actions' }, connect, aiStatus?.connected ? button('Desconectar', () => aiAction(async () => {
+        const result = await api('/api/blog/ai/disconnect', { method: 'POST' });
+        aiModels = []; blogPreferences.model = ''; clearInterval(aiPoll); await refreshAiStatus(); feedback(result.message);
+      }), 'quiet', { disabled: aiBusy }) : null)),
+    el('p', { class: 'description' }, 'A IA usa o perfil e o repertório salvos no portfólio para sugerir um artigo em português. O login abre no navegador e usa a cota compartilhada do ChatGPT, conforme a elegibilidade da conta.'),
+    el('div', { class: 'ai-controls' }, field('Modelo do ChatGPT', modelSelect), button('Atualizar modelos', () => aiAction(async () => {
+      const result = await api('/api/blog/ai/models', { method: 'POST' }); aiModels = result.models;
+      if (!aiModels.some(model => model.id === blogPreferences.model)) blogPreferences.model = aiModels[0]?.id || '';
+      feedback(aiModels.length ? 'Modelos atualizados.' : 'Nenhum modelo disponível para esta conta.', !aiModels.length);
+    }), 'secondary', { disabled: aiBusy || !aiStatus?.connected })), field('Tema ou direção editorial (opcional)', topic), generate);
+  const list = el('div', { class: 'project-list' });
+  const count = el('p', { class: 'hint', role: 'status' });
+  const fillList = () => {
+    const posts = data.posts.filter(post => (blogFilter === 'all' || post.status === blogFilter) && `${post.title} ${post.excerpt} ${post.tags.join(' ')}`.toLocaleLowerCase().includes(blogQuery.toLocaleLowerCase()));
+    list.replaceChildren(...posts.map(post => el('article', { class: 'post-row' },
+      el('div', { class: 'row-copy' }, el('div', { class: 'badges' }, el('span', { class: `badge ${post.status === 'published' ? 'published' : ''}` }, post.status === 'published' ? 'Publicado' : 'Rascunho'), el('span', { class: 'hint' }, post.date)), el('h3', {}, post.title), el('p', {}, post.excerpt)),
+      el('div', { class: 'actions' }, button('Editar', () => editPost(post), 'secondary', { disabled: aiBusy, 'aria-label': `Editar artigo: ${post.title}` }), button('Remover', () => {
+        if (!confirm(`Remover “${post.title}” do rascunho?`)) return;
+        data.posts.splice(data.posts.indexOf(post), 1); changed(); renderBlog();
+      }, 'danger', { disabled: aiBusy, 'aria-label': `Remover artigo: ${post.title}` })))));
+    if (!posts.length) list.append(el('p', { class: 'empty' }, data.posts.length ? 'Nenhum artigo corresponde à busca.' : 'Seu blog começa aqui. Escreva um artigo ou peça uma sugestão à IA.'));
+    count.textContent = `${posts.length} de ${data.posts.length} artigos`;
+  };
+  const filter = select('blog-filter', blogFilter, [['all', 'Todos'], ['draft', 'Rascunhos'], ['published', 'Publicados']]);
+  filter.addEventListener('change', () => { blogFilter = filter.value; fillList(); });
+  fillList();
+  const published = data.posts.filter(post => post.status === 'published').length;
+  view.replaceChildren(heading('Blog', `Visíveis no site: ${published}. Em rascunho: ${data.posts.length - published}. Para exibir um artigo, escolha “Publicado”, aplique e salve no JSON.`, button('+ Novo artigo', () => editPost(), 'primary', { disabled: aiBusy })), assistant,
+    el('div', { class: 'filters' }, field('Buscar artigos', input('blog-search', blogQuery, { type: 'search', placeholder: 'Título, resumo ou tag…', oninput: event => { blogQuery = event.target.value; fillList(); } })), field('Estado', filter)), count, list);
+  if (!aiStatus) refreshAiStatus().then(() => { if (currentView === 'blog') renderBlog(); }).catch(error => {
+    aiStatus = { connected: false }; connection.textContent = 'Não foi possível verificar a conexão.'; feedback(error.message, true);
+  });
 }
 
 load();

@@ -3,8 +3,10 @@ import { readFile, writeFile, mkdir, rename, rm, access } from 'node:fs/promises
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { projectRoot, publicFiles, compileHtml } from './site.mjs';
+import { projectRoot } from './site.mjs';
 import { validatePortfolio, imagePathPattern } from '../lib/content.js';
+import { createBlogAi } from './blog-ai.mjs';
+import { createSecretStore } from './secret-store.mjs';
 
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 const revisionOf = source => createHash('sha256').update(source).digest('hex');
@@ -30,9 +32,10 @@ function imageExtension(body, type) {
   throw fail(415, 'Envie uma imagem PNG, JPEG ou WebP válida (até 8 MB).');
 }
 
-export function createCmsServer({ root = projectRoot } = {}) {
+export function createCmsServer({ root = projectRoot, blogAi } = {}) {
   const token = randomUUID();
   const contentFile = resolve(root, 'portfolio.json');
+  const ai = blogAi || createBlogAi({ store: createSecretStore(resolve(root, '.cms/openai.enc')) });
   let writeQueue = Promise.resolve();
   const json = (response, status, value) => response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(value));
   const server = createServer(async (request, response) => {
@@ -40,22 +43,46 @@ export function createCmsServer({ root = projectRoot } = {}) {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'same-origin');
     response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
     try {
       const origin = `http://127.0.0.1:${server.address().port}`;
       if (request.headers.host !== new URL(origin).host) throw fail(403, 'Use o endereço local exibido no terminal.');
       if (request.headers.origin && request.headers.origin !== origin) throw fail(403, 'Origem não permitida.');
-      if (request.headers['sec-fetch-site'] === 'cross-site') throw fail(403, 'Origem não permitida.');
       const url = new URL(request.url, origin);
       const pathname = decodeURIComponent(url.pathname);
-      if (pathname === '/cms' || pathname.startsWith('/cms/') || pathname.startsWith('/api/')) response.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+      // OAuth redirects retain cross-site Fetch Metadata through the callback.
+      // Only the inert CMS shell may be opened as a top-level GET navigation;
+      // API reads/writes still require the existing same-origin protections.
+      const cmsNavigation = request.method === 'GET'
+        && (pathname === '/cms' || pathname === '/cms/')
+        && request.headers['sec-fetch-mode'] === 'navigate'
+        && request.headers['sec-fetch-dest'] === 'document';
+      if (request.headers['sec-fetch-site'] === 'cross-site' && !cmsNavigation) throw fail(403, 'Origem não permitida.');
 
       if (pathname === '/api/content' && request.method === 'GET') {
         const source = await readFile(contentFile, 'utf8');
         json(response, 200, { content: validatePortfolio(JSON.parse(source)), revision: revisionOf(source), token });
         return;
       }
+      if (pathname === '/api/blog/ai/status' && request.method === 'GET') {
+        json(response, 200, await ai.status()); return;
+      }
       if (pathname.startsWith('/api/') && ['PUT', 'POST'].includes(request.method)) {
         if (request.headers.origin !== origin || request.headers['x-cms-token'] !== token) throw fail(403, 'Sessão inválida. Recarregue o CMS.');
+        if (request.method === 'POST' && pathname.startsWith('/api/blog/ai/')) {
+          if (pathname === '/api/blog/ai/connect') { json(response, 200, await ai.start(origin)); return; }
+          if (pathname === '/api/blog/ai/disconnect') { json(response, 200, await ai.disconnect()); return; }
+          if (pathname === '/api/blog/ai/models') { json(response, 200, await ai.models()); return; }
+          if (pathname === '/api/blog/ai/suggest') {
+            if (request.headers['content-type'] !== 'application/json') throw fail(415, 'O conteúdo deve ser JSON.');
+            let input;
+            try { input = JSON.parse((await bodyOf(request, 16 * 1024)).toString('utf8')); }
+            catch (error) { throw error.status ? error : fail(422, 'Solicitação JSON inválida.'); }
+            if (!input || typeof input !== 'object') throw fail(422, 'Solicitação inválida.');
+            const content = validatePortfolio(JSON.parse(await readFile(contentFile, 'utf8')));
+            json(response, 200, await ai.suggest({ topic: input.topic, model: input.model, content })); return;
+          }
+        }
         if (pathname === '/api/content' && request.method === 'PUT') {
           if (request.headers['content-type'] !== 'application/json') throw fail(415, 'O conteúdo deve ser JSON.');
           let content;
@@ -100,15 +127,17 @@ export function createCmsServer({ root = projectRoot } = {}) {
       }
       if (pathname.startsWith('/api/')) throw fail(405, 'Operação não disponível.');
       if (!['GET', 'HEAD'].includes(request.method)) throw fail(405, 'Método não permitido.');
+      if (pathname === '/') {
+        response.writeHead(303, { Location: `/cms/${url.search}` }).end(); return;
+      }
       if (pathname === '/cms' || pathname === '/cms/') {
         response.writeHead(200, { 'Content-Type': types['.html'] }).end(request.method === 'HEAD' ? undefined : await readFile(resolve(toolRoot, 'cms/index.html')));
         return;
       }
-      const file = pathname.slice(1) || 'index.html';
-      const cmsFiles = ['cms/cms.js', 'cms/cms.css'];
-      if (!publicFiles.includes(file) && !cmsFiles.includes(file) && !imagePathPattern.test(file)) throw fail(404, 'Arquivo não encontrado.');
-      let body = await readFile(resolve(cmsFiles.includes(file) || file === 'lib/content.js' ? toolRoot : root, file));
-      if (file === 'index.html') body = Buffer.from(compileHtml(body.toString('utf8'), validatePortfolio(JSON.parse(await readFile(contentFile, 'utf8')))));
+      const file = pathname.slice(1);
+      const cmsFiles = ['cms/cms.js', 'cms/cms.css', 'lib/content.js', 'lib/blog.js', 'assets/favicon.svg'];
+      if (!cmsFiles.includes(file) && !imagePathPattern.test(file)) throw fail(404, 'Arquivo não encontrado.');
+      const body = await readFile(resolve(cmsFiles.includes(file) ? toolRoot : root, file));
       response.writeHead(200, { 'Content-Type': types[extname(file)] }).end(request.method === 'HEAD' ? undefined : body);
     } catch (error) {
       const status = error.status || (error.code === 'ENOENT' ? 404 : 500);
@@ -117,6 +146,7 @@ export function createCmsServer({ root = projectRoot } = {}) {
       else response.end();
     }
   });
+  server.on('close', () => { ai.close().catch(() => {}); });
   return server;
 }
 
@@ -125,7 +155,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const port = Number(index === -1 ? '4180' : process.argv[index + 1]);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('A porta deve ser um inteiro entre 1 e 65535.');
   const server = createCmsServer();
-  server.listen(port, '127.0.0.1', () => console.log(`CMS local: http://127.0.0.1:${port}/cms/\nSite: http://127.0.0.1:${port}/`));
+  server.listen(port, '127.0.0.1', () => console.log(`CMS local: http://127.0.0.1:${port}/cms/\nPara iniciar o portfólio separadamente: npm run dev`));
   server.on('error', error => { console.error(error.message); process.exitCode = 1; });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));
 }

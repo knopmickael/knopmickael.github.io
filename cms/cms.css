@@ -96,6 +96,28 @@ dialog::backdrop { background: #050805cf; backdrop-filter: blur(5px); }
 .gallery-entry .check { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
 .gallery-entry .field { margin-bottom: 12px; }
 .gallery-filename { overflow-wrap: anywhere; margin-bottom: 8px; }
+.ai-panel { padding: 26px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin-bottom: 30px; }
+.ai-heading { display: flex; justify-content: space-between; gap: 20px; align-items: start; flex-wrap: wrap; }
+.ai-heading .eyebrow { margin-bottom: 8px; }
+.ai-heading .hint { margin-top: 10px; overflow-wrap: anywhere; }
+.ai-panel .description { margin-bottom: 22px; }
+.ai-controls { display: flex; align-items: end; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.ai-controls .field { flex: 1 1 200px; margin: 0; }
+.post-row { padding: 22px; display: flex; gap: 20px; align-items: center; justify-content: space-between; border: 1px solid var(--line); background: var(--panel); border-radius: 7px; }
+.post-row .row-copy { flex: 1; }
+.post-row h3 { margin-top: 12px; }
+.post-row .badges { margin-top: 0; }
+.post-row .published { color: var(--accent); border-color: #c7f36b60; }
+.post-preview { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 20px; padding: 16px; }
+.post-preview summary { cursor: pointer; color: var(--accent); }
+.article-body { overflow-wrap: anywhere; line-height: 1.9; }
+.article-body > * { margin-block: 20px; }
+.article-body h4 { font-size: 21px; line-height: 1.4; }
+.article-body h5 { font-size: 17px; }
+.article-body pre { padding: 18px; background: var(--bg); overflow: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+.article-body ul { padding-left: 24px; }
+.article-body p { white-space: pre-line; }
+@media (max-width: 700px) { .ai-panel { padding: 18px; } .ai-heading h2 { font-size: 21px; } .post-row { flex-direction: column; align-items: start; padding: 18px; } }
 @media (max-width: 700px) { .gallery-entry { grid-template-columns: minmax(0, 1fr); padding: 10px; } .visual-options { padding: 12px; } }
 .visual-options { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-bottom: 22px; }
 .visual-options .field:last-child { margin-bottom: 0; }

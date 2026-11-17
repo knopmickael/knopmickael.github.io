@@ -6,6 +6,7 @@ import { compileHtml, publicFiles } from '../scripts/site.mjs';
 
 const source = JSON.parse(await readFile(new URL('../portfolio.json', import.meta.url), 'utf8'));
 const template = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const blogTemplate = await readFile(new URL('../blog.html', import.meta.url), 'utf8');
 
 test('the actual portfolio has valid content and resolvable navigation targets', () => {
   assert.equal(validatePortfolio(source), source);
@@ -29,6 +30,19 @@ test('links permit HTTPS and local anchors but reject executable and credential-
   assert.ok(safeUrl('https://github.com/knopmickael'));
   assert.ok(safeUrl('#projetos'));
   for (const url of ['javascript:alert(1)', 'data:text/html,hello', '//example.com', 'https://user:password@example.com', '#', '']) assert.equal(safeUrl(url), false);
+});
+
+test('blog navigation accepts the explicit static page without allowing arbitrary local paths', () => {
+  const content = structuredClone(source);
+  content.navigation.push({ label: 'Blog', href: './blog.html' });
+  assert.equal(validatePortfolio(content), content);
+  for (const href of ['../blog.html', './cms/', '/blog.html', './blog.html?redirect=evil', 'javascript:alert(1)']) {
+    content.navigation.at(-1).href = href;
+    assert.throws(() => validatePortfolio(content), /Invalid link/);
+  }
+  content.navigation.pop();
+  content.projects[0].url = './blog.html';
+  assert.throws(() => validatePortfolio(content), /Invalid repository URL/);
 });
 
 test('private projects support no links and every project visual mode validates', () => {
@@ -107,4 +121,17 @@ test('publication uses an explicit public file list that excludes source knowled
   assert.ok(publicFiles.includes('lib/content.js'));
   assert.ok(!publicFiles.some(file => file.startsWith('kb/') || file.startsWith('scripts/') || file.startsWith('tests/')));
   assert.ok(!publicFiles.includes('package.json'));
+});
+
+test('blog HTML keeps its page marker and receives escaped metadata independently from the landing', () => {
+  const content = structuredClone(source);
+  content.profile.name = 'Autor <teste>';
+  content.blog.description = 'Artigos & decisões';
+  const html = compileHtml(blogTemplate, content);
+  assert.match(html, /data-page="blog"/);
+  assert.ok(html.includes('<title>Blog · Autor &lt;teste&gt;</title>'));
+  assert.ok(html.includes('content="Artigos &amp; decisões"'));
+  assert.ok(!compileHtml(template, content).includes('data-page="blog"'));
+  assert.ok(publicFiles.includes('blog.html'));
+  assert.ok(publicFiles.includes('lib/blog-page.js'));
 });

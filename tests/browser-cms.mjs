@@ -3,6 +3,7 @@
  */
 async (page) => {
   const origin = new URL(page.url()).origin;
+  const siteOrigin = 'http://127.0.0.1:4176';
   if (new URL(origin).port !== '4175') throw new Error('Use o CMS de teste isolado na porta 4175.');
   const checks = [];
   const assert = (condition, message) => { if (!condition) throw new Error(message); checks.push(message); };
@@ -86,7 +87,7 @@ async (page) => {
   await page.getByRole('button', { name: 'Aplicar projeto', exact: true }).click();
   await save();
   assert((await read()).projects.find(item => item.id === project.id).visual.images[0].src === project.visual.images[0].src, 'Editar legenda preserva o arquivo existente');
-  await page.goto(`${origin}/#projetos`);
+  await page.goto(`${siteOrigin}/#projetos`);
   const cardGallery = page.locator('.project-card').filter({ has: page.getByRole('heading', { name: project.title, exact: true }) }).locator('.art-gallery');
   await cardGallery.scrollIntoViewIfNeeded();
   await cardGallery.getByRole('img', { name: 'Tela mobile do projeto privado', exact: true }).waitFor();
@@ -171,7 +172,7 @@ async (page) => {
   const singleImage = (await read()).projects.find(item => item.id === project.id).visual;
   assert(singleImage.cover === 0 && singleImage.images.length === 1, 'Galeria com uma única imagem continua válida');
   const singlePage = await page.context().newPage();
-  await singlePage.goto(`${origin}/`);
+  await singlePage.goto(`${siteOrigin}/`);
   await singlePage.getByRole('button', { name: `Explorar projeto: ${project.title}`, exact: true }).click();
   const singleDialog = singlePage.getByRole('dialog');
   assert(await singleDialog.getByRole('button', { name: 'Imagem anterior', exact: true }).isDisabled() && await singleDialog.getByRole('button', { name: 'Próxima imagem', exact: true }).isDisabled(), 'Galeria de uma imagem desativa as duas setas');
@@ -189,7 +190,7 @@ async (page) => {
   assert((await read()).projects.at(-2).id === 'cms-test-project', 'Reordenação é salva e respeita a sequência do carrossel');
   const orderedContent = await read();
   const orderedPage = await page.context().newPage();
-  await orderedPage.goto(`${origin}/`);
+  await orderedPage.goto(`${siteOrigin}/`);
   await orderedPage.getByRole('heading', { level: 1 }).waitFor();
   assert(JSON.stringify(await orderedPage.locator('.project-card h3').allTextContents()) === JSON.stringify(orderedContent.projects.map(project => project.title)), 'Landing reflete exatamente a ordem definida no CMS após reordenar');
   await orderedPage.close();

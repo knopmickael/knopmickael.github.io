@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 6,
   "meta": {
     "title": "Mickael Knop — Engenheiro de Software",
     "description": "Engenharia de software de ponta a ponta. Conheça o trabalho de Mickael Knop com backend, aplicações web, integrações, arquitetura e cloud.",
@@ -89,6 +89,48 @@
     {
       "label": "Experiência",
       "href": "#experiencia"
+    },
+    {
+      "label": "Blog",
+      "href": "./blog.html"
+    }
+  ],
+  "blog": {
+    "id": "blog",
+    "eyebrow": "CADERNO DE ENGENHARIA / BLOG",
+    "title": [
+      "Ideias em",
+      "construção."
+    ],
+    "description": "Notas sobre software, arquitetura e as decisões que conectam uma ideia à implementação.",
+    "readLabel": "Ler artigo",
+    "allLabel": "Todos os artigos",
+    "backLabel": "Voltar ao blog",
+    "backHomeLabel": "Voltar ao portfólio",
+    "notFoundTitle": "Artigo não encontrado.",
+    "notFoundDescription": "Este artigo não está disponível. Explore os outros textos publicados no blog.",
+    "permalinkLabel": "Link deste artigo",
+    "minutesLabel": "{minutes} min de leitura",
+    "emptyTitle": "O próximo texto começa com uma boa pergunta.",
+    "emptyDescription": "Em breve, reflexões e notas técnicas por aqui."
+  },
+  "posts": [
+    {
+      "slug": "outbox-transacional-integracoes-confiaveis",
+      "title": "Outbox transacional: como publicar eventos sem perder consistência",
+      "excerpt": "Salvar dados e publicar um evento são duas operações independentes, mesmo quando aparecem lado a lado no código. Este artigo mostra como o padrão Outbox Transacional reduz inconsistências em integrações assíncronas, com um exemplo hipotético em PostgreSQL, decisões de implementação, idempotência e os principais trade-offs.",
+      "body": "Uma operação que grava no banco e publica uma mensagem pode falhar pela metade. O pedido é confirmado, mas o evento não chega ao broker. Ou a mensagem é publicada e, logo depois, a transação local sofre rollback. Em sistemas distribuídos, envolver as duas operações em um único try/catch não oferece atomicidade.\n\nO padrão Outbox Transacional resolve esse problema gravando a alteração de negócio e o evento pendente na mesma transação do banco. Outro processo lê a outbox e publica as mensagens posteriormente. A entrega deixa de depender de uma chamada remota realizada durante a requisição.\n\n## O problema da dupla escrita\n\nConsidere um cenário hipotético: uma API em Node.js confirma pagamentos no PostgreSQL e publica PaymentConfirmed em um broker. Uma implementação direta poderia executar estas etapas:\n\n- Atualizar o pagamento para CONFIRMED.\n- Publicar o evento no broker.\n- Retornar sucesso.\n\nSe o banco for atualizado e o broker estiver indisponível, outros serviços não receberão o evento. Inverter a ordem também não resolve: o consumidor pode processar uma mensagem referente a uma alteração que sofreu rollback.\n\nTransações distribuídas poderiam coordenar os participantes, mas exigem suporte da infraestrutura e aumentam acoplamento e complexidade operacional. Para muitos sistemas web, a outbox oferece uma alternativa mais simples, aceitando consistência eventual.\n\n## Estrutura da outbox\n\nA tabela pode começar pequena, mantendo apenas os campos necessários para publicação e rastreamento:\n\n```sql\nCREATE TABLE outbox_events (\n  id UUID PRIMARY KEY,\n  event_type VARCHAR(120) NOT NULL,\n  aggregate_id VARCHAR(120) NOT NULL,\n  payload JSONB NOT NULL,\n  occurred_at TIMESTAMPTZ NOT NULL,\n  published_at TIMESTAMPTZ,\n  attempts INTEGER NOT NULL DEFAULT 0\n);\n\nCREATE INDEX idx_outbox_pending\n  ON outbox_events (occurred_at)\n  WHERE published_at IS NULL;\n```\n\nNo exemplo hipotético, a confirmação e a criação do evento ocorreriam dentro da mesma transação:\n\n```sql\nBEGIN;\n\nUPDATE payments\nSET status = 'CONFIRMED'\nWHERE id = 'payment-123' AND status = 'PENDING';\n\nINSERT INTO outbox_events (\n  id, event_type, aggregate_id, payload, occurred_at\n) VALUES (\n  'event-456',\n  'PaymentConfirmed',\n  'payment-123',\n  '{\"paymentId\":\"payment-123\",\"amount\":15000}',\n  NOW()\n);\n\nCOMMIT;\n```\n\nNa aplicação real, é importante verificar se o UPDATE alterou uma linha antes de inserir o evento. Isso evita anunciar uma transição que não aconteceu.\n\n## Publicação e concorrência\n\nUm worker busca registros pendentes, publica cada mensagem e preenche published_at. Com vários workers, as linhas precisam ser reservadas para evitar trabalho simultâneo. No PostgreSQL, uma consulta possível é:\n\n```sql\nSELECT id, event_type, aggregate_id, payload\nFROM outbox_events\nWHERE published_at IS NULL\nORDER BY occurred_at\nFOR UPDATE SKIP LOCKED\nLIMIT 100;\n```\n\nManter a transação aberta durante uma chamada ao broker simplifica a reserva, mas prolonga bloqueios e ocupa conexões. Outra opção é marcar registros como PROCESSING, confirmar a transação e publicar fora dela. Nesse caso, é necessário recuperar eventos abandonados quando um worker falha.\n\nA decisão depende do volume, da latência do broker e da capacidade do pool de conexões. Lotes pequenos reduzem o tempo de bloqueio, enquanto lotes maiores aumentam vazão e podem elevar o custo de reprocessamento.\n\n## Entrega duplicada não é exceção\n\nA outbox normalmente oferece entrega pelo menos uma vez, não entrega exatamente uma vez. Um worker pode publicar a mensagem e falhar antes de registrar published_at. Na próxima execução, o evento será enviado novamente.\n\nPor isso, consumidores devem ser idempotentes. Uma estratégia é armazenar o identificador do evento processado e aplicar a alteração de negócio na mesma transação:\n\n```sql\nBEGIN;\n\nINSERT INTO consumed_events (event_id, consumed_at)\nVALUES ('event-456', NOW())\nON CONFLICT DO NOTHING;\n\n-- Executar a alteração somente se o INSERT inserir uma linha.\n\nCOMMIT;\n```\n\nTambém é possível usar uma chave natural da operação, como paymentId combinado com o tipo do evento. O identificador escolhido deve representar a unidade que não pode ser processada duas vezes.\n\n## Decisões que precisam ser explícitas\n\nAntes de adotar o padrão, defina:\n\n- Como eventos com falha serão retentados e quando irão para uma fila de quarentena.\n- Por quanto tempo registros publicados permanecerão na tabela.\n- Se a ordem é necessária globalmente ou apenas por agregado.\n- Como alterações no formato do payload serão versionadas.\n- Quais métricas indicarão atraso, erros e crescimento da outbox.\n\nOrdenação global costuma limitar paralelismo. Quando possível, preserve apenas a ordem por aggregate_id e particione o processamento por essa chave. Para evolução de contrato, adicionar event_version ao registro evita que consumidores precisem inferir o formato.\n\n## Quando usar e quando evitar\n\nA outbox é adequada quando uma alteração persistida precisa resultar de forma confiável em uma mensagem, webhook ou atualização de outro sistema. Ela combina bem com brokers, microsserviços e integrações sujeitas a indisponibilidade temporária.\n\nO custo aparece na operação: há worker, retentativas, limpeza, observabilidade e duplicidades. Para uma aplicação simples que não publica eventos críticos, uma tarefa assíncrona convencional pode ser suficiente. Se o banco já oferece captura de mudanças bem administrada, CDC pode eliminar o polling, mas adiciona dependência da plataforma e exige cuidado para transformar alterações físicas em eventos de negócio.\n\nA principal escolha não é entre síncrono e assíncrono, mas entre esconder a inconsistência ou tratá-la como parte do desenho. A outbox torna essa responsabilidade visível e controlável, desde que idempotência e recuperação de falhas sejam requisitos desde o início.",
+      "date": "2026-11-17",
+      "status": "published",
+      "tags": [
+        "arquitetura de software",
+        "sistemas distribuídos",
+        "integrações",
+        "PostgreSQL",
+        "mensageria",
+        "backend",
+        "idempotência"
+      ]
     }
   ],
   "header": {
@@ -295,8 +337,38 @@
       "details": []
     },
     {
-      "id": "screw-tecnologia-em-transporte-helicoidal",
+      "id": "local-app-farm",
       "number": "03",
+      "title": "Local App Farm",
+      "type": "GERENCIADOR DE APLICAÇÕES",
+      "description": "Central de controle para automatizar o acesso e a manutenção à repositórios e projetos locais.",
+      "tags": [
+        "JavaScript",
+        "Node.js",
+        "JSON",
+        "CMD",
+        "Playwright",
+        "SDD",
+        "AI"
+      ],
+      "url": "",
+      "demoUrl": "",
+      "repositoryVisibility": "private",
+      "visual": {
+        "type": "gallery",
+        "cover": 0,
+        "images": [
+          {
+            "src": "assets/projects/05f6bd36-75f7-40e3-a61f-2910c7cf3836.png",
+            "label": "Dashboard"
+          }
+        ]
+      },
+      "details": []
+    },
+    {
+      "id": "screw-tecnologia-em-transporte-helicoidal",
+      "number": "04",
       "title": "Screw - Tecnologia em Transporte Helicoidal",
       "type": "APLICAÇÃO WEB",
       "description": "Website institucional da empresa Screw com gerenciador de conteúdo, catálogo de produtos, listagem de clientes, board de notícias e formulários de contato com a empresa em Laravel, Vue.js e MySQL.",
@@ -341,7 +413,7 @@
     },
     {
       "id": "caumaq-health-technology",
-      "number": "04",
+      "number": "05",
       "title": "CAUMAQ - Health Technology",
       "type": "APLICAÇÃO WEB",
       "description": "Website institucional da empresa CAUMAQ com gerenciador de conteúdo, catálogo de produtos, área do cliente, board de notícias, depoimentos e formulários de contato com a empresa em Laravel com MySQL.",
@@ -381,7 +453,7 @@
     },
     {
       "id": "brecho-curadoria",
-      "number": "05",
+      "number": "06",
       "title": "Brechó Curadoria",
       "type": "APLICAÇÃO WEB",
       "description": "Loja virtual da empresa Brechó Curadoria by Júlia Effell com gerenciador de conteúdo, catálogo de produtos, área do cliente, carrinho de compras, checkout e formulários de contato com a empresa.",
@@ -425,7 +497,7 @@
     },
     {
       "id": "comercio-de-extracao-de-areia-ltda",
-      "number": "06",
+      "number": "07",
       "title": "2F - Comércio de Extração de Areia LTDA",
       "type": "APLICAÇÃO WEB",
       "description": "Website da empresa 2F Mineradora com gerenciador de conteúdo, informações institucionais, board de notícias e formulários de contato com a empresa em Laravel, Vue.js e MySQL.",
@@ -468,7 +540,7 @@
     },
     {
       "id": "contabilidade-caseira",
-      "number": "07",
+      "number": "08",
       "title": "Contabilidade Caseira",
       "type": "FINANÇAS PESSOAIS",
       "description": "Controle de receitas e despesas em um quadro mensal, com categorias, parcelamentos e persistência local em SQLite.",
@@ -505,7 +577,7 @@
     },
     {
       "id": "ionic-pride",
-      "number": "08",
+      "number": "09",
       "title": "Ionic Pride · Gestão de pessoas",
       "type": "MVP COM IONIC",
       "description": "Um MVP em Ionic para gerenciar informações de colaboradores e fotos de perfil, com execução também no navegador.",

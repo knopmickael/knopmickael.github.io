@@ -1,6 +1,9 @@
 import { validatePortfolio, createResume } from './lib/content.js';
+import { publishedPosts, postHref, navigationHref } from './lib/blog.js';
+import { createBlogPage, postCard, emptyBlog } from './lib/blog-page.js';
 
 const root = document.querySelector('#app');
+const isBlogPage = document.documentElement.dataset.page === 'blog';
 const boot = JSON.parse(document.querySelector('#boot-content').textContent);
 const bootLabel = document.querySelector('#boot-label');
 if (bootLabel) bootLabel.textContent = boot.loading || '';
@@ -197,7 +200,8 @@ function render(data) {
   try { initialTheme = localStorage.getItem('portfolio-theme') || initialTheme; } catch {}
   updateTheme(initialTheme === 'light' ? 'light' : 'dark');
 
-  const navigation = el('nav', { class: 'navigation', id: 'main-navigation', 'aria-label': ui.navigationLabel }, data.navigation.map(item => el('a', { href: item.href }, item.label)), el('a', { class: 'mobile-contact-link', href: data.header.contactHref }, data.header.contactLabel, icon('arrowUpRight')));
+  const pageHref = href => navigationHref(href, isBlogPage);
+  const navigation = el('nav', { class: 'navigation', id: 'main-navigation', 'aria-label': ui.navigationLabel }, data.navigation.map(item => el('a', { href: pageHref(item.href), 'aria-current': isBlogPage && pageHref(item.href) === './blog.html' ? 'page' : undefined }, item.label)), el('a', { class: 'mobile-contact-link', href: pageHref(data.header.contactHref) }, data.header.contactLabel, icon('arrowUpRight')));
   const menuButton = el('button', { class: 'icon-button menu-toggle', type: 'button', 'aria-label': ui.openMenu, 'aria-expanded': 'false', 'aria-controls': 'main-navigation' });
   const header = el('header', { class: 'site-header' });
   function closeMenu(restoreFocus = false) {
@@ -222,10 +226,28 @@ function render(data) {
   header.addEventListener('focusout', event => { if (event.relatedTarget && !header.contains(event.relatedTarget)) closeMenu(); });
   matchMedia('(min-width: 800px)').addEventListener('change', () => closeMenu());
   header.append(el('div', { class: 'container header-inner' },
-    el('a', { href: '#inicio', class: 'brand', 'aria-label': data.header.homeLabel }, el('span', { class: 'brand-mark', 'aria-hidden': 'true' }, profile.initials, el('i', {})), el('span', { class: 'brand-name' }, profile.brand)),
+    el('a', { href: pageHref('#inicio'), class: 'brand', 'aria-label': data.header.homeLabel }, el('span', { class: 'brand-mark', 'aria-hidden': 'true' }, profile.initials, el('i', {})), el('span', { class: 'brand-name' }, profile.brand)),
     navigation,
-    el('div', { class: 'header-actions' }, themeButton, el('span', { class: 'header-divider', 'aria-hidden': 'true' }), el('a', { href: data.header.contactHref, class: 'header-contact' }, data.header.contactLabel, icon('arrowUpRight')), menuButton)
+    el('div', { class: 'header-actions' }, themeButton, el('span', { class: 'header-divider', 'aria-hidden': 'true' }), el('a', { href: pageHref(data.header.contactHref), class: 'header-contact' }, data.header.contactLabel, icon('arrowUpRight')), menuButton)
   ));
+
+  function mount(children, { title = data.meta.title, description = data.meta.description, type = 'website' } = {}) {
+    const footer = el('footer', { class: 'site-footer container' },
+      el('div', { class: 'footer-brand' }, el('span', { class: 'brand-mark', 'aria-hidden': 'true' }, profile.initials, el('i', {})), el('span', {}, data.footer.copyright)), el('p', {}, data.footer.note),
+      el('a', { href: '#inicio', class: 'footer-top', 'aria-label': ui.backToTop }, data.footer.index, icon('arrowUp')));
+    document.documentElement.lang = data.meta.language;
+    document.title = title;
+    document.querySelector('meta[name="description"]').content = description;
+    document.querySelector('meta[property="og:title"]').content = title;
+    document.querySelector('meta[property="og:description"]').content = description;
+    document.querySelector('meta[property="og:type"]').content = type;
+    root.replaceChildren(el('a', { class: 'skip-link', href: '#conteudo' }, ui.skipToContent), el('div', { id: 'inicio' }), header, el('main', { id: 'conteudo', class: isBlogPage ? 'blog-main' : undefined, tabindex: '-1' }, children), footer, dialog, toast);
+  }
+  if (isBlogPage) {
+    const page = createBlogPage(data, { el, icon });
+    mount(page.content, page);
+    return;
+  }
 
   const hero = el('section', { class: 'hero container', 'aria-labelledby': 'hero-title' },
     el('div', { class: 'hero-copy' },
@@ -329,17 +351,13 @@ function render(data) {
       el('div', { class: 'contact-aside' }, icon('globe', 'contact-globe'), el('p', { class: 'eyebrow' }, data.contact.locationLabel), el('p', { class: 'contact-location' }, profile.location), el('p', {}, profile.workMode), el('div', { class: 'contact-socials' }, profile.socials.map(item => externalLink(item.url, item.label, ui, 'text-link', icon('arrowUpRight')))), el('span', { class: 'contact-signature' }, data.contact.signature))
     )
   );
-  const footer = el('footer', { class: 'site-footer container' },
-    el('div', { class: 'footer-brand' }, el('span', { class: 'brand-mark', 'aria-hidden': 'true' }, profile.initials, el('i', {})), el('span', {}, data.footer.copyright)), el('p', {}, data.footer.note),
-    el('a', { href: '#inicio', class: 'footer-top', 'aria-label': ui.backToTop }, data.footer.index, icon('arrowUp'))
+  const posts = publishedPosts(data);
+  const blog = el('section', { id: data.blog.id, class: 'section blog-section container', 'aria-labelledby': `${data.blog.id}-title` },
+    sectionHeading(data.blog),
+    el('div', { class: 'blog-list' }, posts.length ? posts.slice(0, 3).map((post, index) => postCard(post, index, data, { el, icon }, 'h3')) : emptyBlog(data, { el, icon }, 'h3')),
+    el('a', { class: 'text-link blog-all', href: './blog.html' }, data.blog.allLabel, icon('arrowUpRight'))
   );
-
-  document.documentElement.lang = data.meta.language;
-  document.title = data.meta.title;
-  document.querySelector('meta[name="description"]').content = data.meta.description;
-  document.querySelector('meta[property="og:title"]').content = data.meta.title;
-  document.querySelector('meta[property="og:description"]').content = data.meta.description;
-  root.replaceChildren(el('a', { class: 'skip-link', href: '#conteudo' }, ui.skipToContent), el('div', { id: 'inicio' }), header, el('main', { id: 'conteudo', tabindex: '-1' }, hero, strip, about, projects, expertise, experience, contact), footer, dialog, toast);
+  mount([hero, strip, about, projects, expertise, experience, blog, contact]);
 
   const sections = [...document.querySelectorAll('main section[id]')];
   const observer = new IntersectionObserver(entries => {
@@ -359,6 +377,10 @@ function render(data) {
 }
 
 async function load() {
+  if (!isBlogPage && location.hash.startsWith('#artigo-')) {
+    location.replace(postHref(location.hash.slice('#artigo-'.length)));
+    return;
+  }
   try {
     const response = await fetch(new URL('./portfolio.json', import.meta.url), { cache: 'no-cache' });
     if (!response.ok) throw new Error(`Content request failed: ${response.status}`);
