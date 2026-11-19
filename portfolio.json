@@ -131,6 +131,23 @@
         "backend",
         "idempotência"
       ]
+    },
+    {
+      "slug": "java4shell-como-avaliar-exposicao-e-priorizar-a-correcao",
+      "title": "Java4Shell: como avaliar exposição e priorizar a correção sem depender apenas do scanner",
+      "excerpt": "Um guia prático para entender o Spring4Shell, identificar aplicações potencialmente vulneráveis e decidir entre atualização, mitigação temporária e bloqueios de infraestrutura. Inclui inventário de dependências, critérios de exposição e exemplos hipotéticos para organizar a resposta.",
+      "body": "Java4Shell, nome também usado informalmente para Spring4Shell, não é uma vulnerabilidade genérica de qualquer aplicação Java. A falha registrada como CVE-2022-22965 está relacionada ao data binding do Spring Framework e pode permitir que parâmetros HTTP alterem propriedades que não deveriam ser acessíveis.\n\nA resposta adequada exige mais do que procurar uma versão em um scanner. É necessário combinar dependências, versão do Java, modelo de empacotamento, servidor de aplicação e exposição dos endpoints. Mesmo quando a cadeia de exploração pública não se aplica, atualizar o framework continua sendo a correção principal.\n\n## Não confunda Spring4Shell com Log4Shell\n\nApesar dos nomes semelhantes, são problemas diferentes. Log4Shell afeta determinadas versões do Log4j e explora o processamento de mensagens de log. Spring4Shell está ligado ao mecanismo de binding do Spring Framework.\n\nIsso muda tanto o inventário quanto a mitigação. Procurar apenas por arquivos do Log4j não identifica Spring4Shell, assim como atualizar o Spring não corrige uma biblioteca Log4j vulnerável. O primeiro passo operacional é registrar explicitamente qual CVE está sendo tratada.\n\n## Condições que influenciam a exploração\n\nAs versões corrigidas do Spring Framework foram 5.3.18 e 5.2.20. Versões anteriores das linhas afetadas, além de versões antigas sem suporte, devem ser revisadas. A vulnerabilidade ganhou relevância especialmente em aplicações executadas com JDK 9 ou superior.\n\nA cadeia de exploração mais divulgada dependia de uma combinação mais específica:\n\n- Aplicação Spring MVC empacotada como WAR.\n- Implantação em uma instância externa do Apache Tomcat.\n- Uso de uma versão vulnerável do Spring Framework.\n- Endpoint que realiza binding de parâmetros controlados pelo cliente.\n- Configuração que permite transformar a alteração indevida em execução de código.\n\nUm JAR executável do Spring Boot, com servidor embarcado, não correspondia diretamente a essa cadeia conhecida. Isso não deve ser tratado como garantia permanente de segurança. A falha está no framework, e uma cadeia diferente pode surgir conforme a configuração e os componentes utilizados.\n\n## Faça o inventário pela dependência resolvida\n\nConsultar apenas o arquivo de configuração pode produzir falsos negativos. A versão vulnerável pode chegar transitivamente por outra biblioteca ou ser substituída durante o build.\n\nEm um exemplo hipotético com Maven, a equipe poderia inspecionar a árvore efetivamente resolvida:\n\n```\n./mvnw dependency:tree -Dincludes=org.springframework\n```\n\nEm um projeto Gradle hipotético, a verificação poderia começar com:\n\n```\n./gradlew dependencies --configuration runtimeClasspath\n```\n\nAlém da versão, o inventário deve registrar:\n\n- Versão do JDK usada em produção.\n- Presença de spring-webmvc ou spring-webflux.\n- Empacotamento em JAR ou WAR.\n- Uso de Tomcat externo, embarcado ou de outro servidor.\n- Endpoints públicos que recebem parâmetros e objetos complexos.\n- Controles existentes no proxy, gateway e servidor de aplicação.\n\nA imagem do contêiner ou o artefato implantado deve ser a referência final. O repositório pode declarar uma versão enquanto o pipeline publica outra.\n\n## Priorize com uma matriz de exposição\n\nConsidere dois cenários hipotéticos. No primeiro, uma API pública usa uma versão vulnerável, JDK 11, WAR e Tomcat externo. Ela reúne as principais condições da cadeia conhecida e deve receber prioridade imediata.\n\nNo segundo, um processamento interno usa o mesmo Spring Framework, mas roda como JAR executável, sem endpoints HTTP públicos. A urgência operacional pode ser menor, porém a dependência ainda deve ser atualizada. Classificar como não vulnerável apenas por não reproduzir o exploit conhecido cria dívida de segurança e prolonga a exposição.\n\nUma priorização prática pode considerar:\n\n- Prioridade crítica: condições conhecidas de exploração e endpoint acessível.\n- Prioridade alta: framework vulnerável e superfície HTTP, mesmo sem reproduzir toda a cadeia.\n- Prioridade média: componente vulnerável sem exposição direta, protegido por segmentação verificável.\n- Prioridade de manutenção: dependência antiga presente apenas em build, teste ou artefato não implantado.\n\n## Atualização, mitigação ou bloqueio\n\nAtualizar o Spring Framework para uma versão corrigida e suportada é a decisão preferencial. Em aplicações Spring Boot, deve-se atualizar para uma versão do Boot que gerencie uma versão corrigida do Framework, evitando sobrescrever dependências isoladamente sem testar compatibilidade.\n\nQuando a atualização imediata não for possível, uma mitigação temporária pode restringir campos aceitos pelo binder. Um exemplo hipotético seria aplicar uma política centralizada com ControllerAdvice:\n\n```java\n@ControllerAdvice\npublic class BindingProtection {\n    @InitBinder\n    public void configure(WebDataBinder binder) {\n        binder.setDisallowedFields(\n            \"class.*\",\n            \"Class.*\",\n            \"*.class.*\",\n            \"*.Class.*\"\n        );\n    }\n}\n```\n\nEssa abordagem exige testes porque pode interferir em bindings legítimos e não substitui a atualização. Regras em WAF ou gateway também servem como camada adicional, mas podem ser contornadas por variações de codificação, nomes de parâmetros ou caminhos alternativos.\n\n## Valide a correção no artefato final\n\nApós a mudança, reconstrua a aplicação, gere novamente a imagem e confirme a versão presente no pacote publicado. Depois, execute testes de regressão nos endpoints que usam formulários, filtros, paginação e objetos aninhados.\n\nA resposta só deve ser encerrada quando houver evidência de que o artefato corrigido está implantado, as instâncias antigas foram removidas e as mitigações temporárias possuem responsável e prazo de retirada. O scanner ajuda a localizar candidatos, mas a decisão segura nasce da combinação entre dependência real, arquitetura de execução e superfície exposta.",
+      "date": "2026-11-19",
+      "status": "published",
+      "tags": [
+        "Java",
+        "Spring Framework",
+        "Spring Boot",
+        "Segurança",
+        "CVE-2022-22965",
+        "DevSecOps",
+        "Arquitetura"
+      ]
     }
   ],
   "header": {
@@ -395,12 +412,12 @@
             "label": "Website desktop"
           },
           {
-            "src": "assets/projects/943a4403-b62a-4e2c-abb7-45eaebb8f01a.png",
-            "label": "Website mobile"
-          },
-          {
             "src": "assets/projects/3ab81a95-35ed-4334-ba68-e23df141c99c.png",
             "label": "CMS"
+          },
+          {
+            "src": "assets/projects/943a4403-b62a-4e2c-abb7-45eaebb8f01a.png",
+            "label": "Website mobile"
           }
         ]
       },
@@ -412,10 +429,91 @@
       ]
     },
     {
-      "id": "caumaq-health-technology",
+      "id": "contabilidade-caseira",
       "number": "05",
+      "title": "Contabilidade Caseira",
+      "type": "FINANÇAS PESSOAIS",
+      "description": "Controle de receitas e despesas em um quadro mensal, com categorias, parcelamentos e persistência local em SQLite.",
+      "tags": [
+        "JavaScript",
+        "Node.js",
+        "SQLite",
+        "CSS 3",
+        "SDD"
+      ],
+      "url": "https://github.com/knopmickael/contabilidade-caseira",
+      "visual": {
+        "type": "gallery",
+        "cover": 0,
+        "images": [
+          {
+            "src": "assets/projects/9d8e0407-258c-4a34-96b1-536edce95506.png",
+            "label": "Dashboard"
+          }
+        ]
+      },
+      "details": [
+        {
+          "title": "O projeto",
+          "text": "Aplicação web local para controle de finanças pessoais, com uma coluna por mês em um quadro estilo Kanban. O frontend usa HTML, CSS e JavaScript; o servidor Node.js persiste o estado em SQLite."
+        },
+        {
+          "title": "Organização financeira",
+          "text": "O projeto reúne receitas, gastos por categoria e subcategoria, parcelamentos, replicação de despesas e um saldo separado para vale-alimentação. Meses podem ser arquivados e restaurados."
+        }
+      ],
+      "demoUrl": "https://knopmickael.github.io/contabilidade-caseira/",
+      "repositoryVisibility": "public"
+    },
+    {
+      "id": "brecho-curadoria",
+      "number": "06",
+      "title": "Brechó Curadoria",
+      "type": "LOJA VIRTUAL",
+      "description": "Loja virtual da empresa Brechó Curadoria by Júlia Effell com gerenciador de conteúdo, catálogo de produtos, área do cliente, carrinho de compras, checkout e formulários de contato com a empresa.",
+      "tags": [
+        "TypeScript",
+        "React",
+        "Node.js",
+        "Fastify",
+        "REST API",
+        "PostgreSQL",
+        "Docker",
+        "AWS",
+        "Lightsail",
+        "ECR",
+        "Caddy",
+        "CI/CD",
+        "SDD"
+      ],
+      "url": "",
+      "demoUrl": "",
+      "repositoryVisibility": "private",
+      "visual": {
+        "type": "gallery",
+        "cover": 0,
+        "images": [
+          {
+            "src": "assets/projects/f2722f6f-449e-4e0f-b2c3-46af26680c8a.png",
+            "label": "Website desktop"
+          },
+          {
+            "src": "assets/projects/2dd96e4f-cb5d-4354-a23b-aa4dbac34f0e.png",
+            "label": "CMS"
+          },
+          {
+            "src": "assets/projects/8007e955-9e23-4c46-aa83-34d88c42fd47.png",
+            "label": "Website mobile"
+          }
+        ]
+      },
+      "details": []
+    },
+    {
+      "id": "caumaq-health-technology",
+      "number": "07",
       "title": "CAUMAQ - Health Technology",
-      "type": "APLICAÇÃO WEB",
+      "type": "LOJA VIRTUAL",
       "description": "Website institucional da empresa CAUMAQ com gerenciador de conteúdo, catálogo de produtos, área do cliente, board de notícias, depoimentos e formulários de contato com a empresa em Laravel com MySQL.",
       "tags": [
         "Laravel",
@@ -452,52 +550,8 @@
       "details": []
     },
     {
-      "id": "brecho-curadoria",
-      "number": "06",
-      "title": "Brechó Curadoria",
-      "type": "APLICAÇÃO WEB",
-      "description": "Loja virtual da empresa Brechó Curadoria by Júlia Effell com gerenciador de conteúdo, catálogo de produtos, área do cliente, carrinho de compras, checkout e formulários de contato com a empresa.",
-      "tags": [
-        "TypeScript",
-        "React",
-        "Node.js",
-        "Fastify",
-        "REST API",
-        "PostgreSQL",
-        "Docker",
-        "AWS",
-        "Lightsail",
-        "ECR",
-        "Caddy",
-        "CI/CD",
-        "SDD"
-      ],
-      "url": "",
-      "demoUrl": "",
-      "repositoryVisibility": "private",
-      "visual": {
-        "type": "gallery",
-        "cover": 0,
-        "images": [
-          {
-            "src": "assets/projects/f2722f6f-449e-4e0f-b2c3-46af26680c8a.png",
-            "label": "Website desktop"
-          },
-          {
-            "src": "assets/projects/8007e955-9e23-4c46-aa83-34d88c42fd47.png",
-            "label": "Website mobile"
-          },
-          {
-            "src": "assets/projects/2dd96e4f-cb5d-4354-a23b-aa4dbac34f0e.png",
-            "label": "CMS"
-          }
-        ]
-      },
-      "details": []
-    },
-    {
       "id": "comercio-de-extracao-de-areia-ltda",
-      "number": "07",
+      "number": "08",
       "title": "2F - Comércio de Extração de Areia LTDA",
       "type": "APLICAÇÃO WEB",
       "description": "Website da empresa 2F Mineradora com gerenciador de conteúdo, informações institucionais, board de notícias e formulários de contato com a empresa em Laravel, Vue.js e MySQL.",
@@ -539,47 +593,10 @@
       "details": []
     },
     {
-      "id": "contabilidade-caseira",
-      "number": "08",
-      "title": "Contabilidade Caseira",
-      "type": "FINANÇAS PESSOAIS",
-      "description": "Controle de receitas e despesas em um quadro mensal, com categorias, parcelamentos e persistência local em SQLite.",
-      "tags": [
-        "JavaScript",
-        "Node.js",
-        "SQLite",
-        "CSS 3",
-        "SDD"
-      ],
-      "url": "https://github.com/knopmickael/contabilidade-caseira",
-      "visual": {
-        "type": "gallery",
-        "cover": 0,
-        "images": [
-          {
-            "src": "assets/projects/9d8e0407-258c-4a34-96b1-536edce95506.png",
-            "label": "Dashboard"
-          }
-        ]
-      },
-      "details": [
-        {
-          "title": "O projeto",
-          "text": "Aplicação web local para controle de finanças pessoais, com uma coluna por mês em um quadro estilo Kanban. O frontend usa HTML, CSS e JavaScript; o servidor Node.js persiste o estado em SQLite."
-        },
-        {
-          "title": "Organização financeira",
-          "text": "O projeto reúne receitas, gastos por categoria e subcategoria, parcelamentos, replicação de despesas e um saldo separado para vale-alimentação. Meses podem ser arquivados e restaurados."
-        }
-      ],
-      "demoUrl": "",
-      "repositoryVisibility": "public"
-    },
-    {
       "id": "ionic-pride",
       "number": "09",
       "title": "Ionic Pride · Gestão de pessoas",
-      "type": "MVP COM IONIC",
+      "type": "APLICAÇÃO MOBILE",
       "description": "Um MVP em Ionic para gerenciar informações de colaboradores e fotos de perfil, com execução também no navegador.",
       "tags": [
         "Ionic",
@@ -595,7 +612,9 @@
           "title": "O projeto",
           "text": "MVP em Ionic 6 para gerenciamento de informações e imagens de perfil de colaboradores. O README apresenta o objetivo do projeto e a execução da interface pelo navegador."
         }
-      ]
+      ],
+      "demoUrl": "",
+      "repositoryVisibility": "public"
     }
   ],
   "expertise": {
